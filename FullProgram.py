@@ -38,11 +38,49 @@ class ui_sub(Ui_MainWindow):
         self.SetUpButtonOnGUI()
         # Assign initial variable
         self.ImgPredict = None
+        self.StateAuto = False
            
     # Setup button
     def SetUpButtonOnGUI(self):
+        # Load image for prediction
         self.LoadImageOnce.clicked.connect(self.SelectedImageForPrediction)
+        # Disable button save image
+        self.SaveImage.setEnabled(False)
+        # Signal for save image after predict
+        self.SaveImage.clicked.connect(self.saveImgAfterPredict)
+        # signal for select path save image after predict
+        self.destinationPath.clicked.connect(self.selectPathSaveImage)
+        # disable auto save 
+        self.autoSave.setEnabled(False)
+        # Signal when click auto save
+        self.autoSave.clicked.connect(self.LoadStateAutoSave)
+        
+    # Load state auto save
+    def LoadStateAutoSave(self):
+        if self.autoSave.isChecked():
+            st = self.AleartBoxConfirm(description = 'Auto save is enable ?')
+            if st:
+                self.StateAutoSaveImgPredict = True
+            elif not st:
+                self.autoSave.setChecked(False)
+        elif not self.autoSave.isChecked():
+            st = self.AleartBoxConfirm(description = 'Auto save is disable ?')
+            if st:
+                self.StateAutoSaveImgPredict = False
+            elif not st:
+                self.autoSave.setChecked(False)
 
+    # selected path for save image
+    def selectPathSaveImage(self):
+        self.Dir = QFileDialog.getExistingDirectory(caption = 'Select directory', directory = 'c:\\')
+        if self.Dir != '':
+            # Set path for save image
+            self.pathShow.setText('Directory: {}' .format(self.Dir))
+            # Enable for save image
+            self.SaveImage.setEnabled(True)
+            # Enable auto save
+            self.autoSave.setEnabled(True)
+            
     # Selected image for predection with .h5
     def SelectedImageForPrediction(self):
         # Load image process
@@ -72,6 +110,11 @@ class ui_sub(Ui_MainWindow):
                 self.SourceImage.setPixmap(QPixmap.fromImage(qImg))
                 # Predict process
                 self.PredictProcess(imgPath = file)
+                try:
+                    if self.StateAutoSaveImgPredict:
+                        self.saveImgAfterPredict()
+                except:
+                    pass
         except:
             self.AleartBoxError(description = 'Can\'t load image !')
         
@@ -106,6 +149,7 @@ class ui_sub(Ui_MainWindow):
         # Set pixmap for show on GUI
         self.DisImage.setPixmap(QPixmap.fromImage(qImg))
         
+        
     # Label for show image
     def LabelShow(self, img, label):
         try:
@@ -126,6 +170,14 @@ class ui_sub(Ui_MainWindow):
         except:
             self.AleartBoxError(description = 'Can\'t draw box and text !')
             
+    # Save image after predict
+    def saveImgAfterPredict(self):
+        try:
+            name = f'{self.Dir}\\PD-' + datetime.now().strftime('%d-%m-%Y_%H-%M-%S') +'.jpg'
+            cv2.imwrite(name, cv2.cvtColor(self.ImgPredict, cv2.COLOR_BGR2RGB))
+        except:
+            self.AleartBoxError(description = 'Can\'t save image !')
+            
     # ----- Aleart message -----
     def AleartBoxError(self, description):
         msg = QMessageBox()
@@ -134,6 +186,21 @@ class ui_sub(Ui_MainWindow):
         msg.setIcon(QMessageBox.Warning)
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
+        
+    # Aleartbox for confirm
+    def AleartBoxConfirm(self, description):
+        msg = QMessageBox()
+        msg.setWindowTitle('Confirm')
+        msg.setWindowIcon(QtGui.QIcon(str(os.path.join(ROOT, r'imagefile\question.png'))))
+        msg.setText(description)
+        msg.setIcon(QMessageBox.Question)
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        # ret is signal from clicked button
+        ret = msg.exec_()
+        if ret == QMessageBox.Yes:
+            return True
+        elif ret == QMessageBox.No:
+            return False
             
             
 if __name__ == '__main__':
