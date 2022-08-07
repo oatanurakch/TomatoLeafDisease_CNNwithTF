@@ -1,0 +1,1 @@
+pyuic5 -x ScreenUI.ui -o ui_program.py
